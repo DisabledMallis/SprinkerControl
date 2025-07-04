@@ -1,7 +1,8 @@
 from nicegui import ui
 from nicegui.events import ValueChangeEventArguments
 
-from zonectl import ZoneCtl, Zone, spkr_ctl
+from spkrctl import SpkrCtl, spkr_ctl
+from zonectl import ZoneCtl, Zone
 
 # Zone controller
 zone_ctl = ZoneCtl()
@@ -25,6 +26,9 @@ def deselect_zone(zone: int):
     zone_select[zone-1] = None
 
 ui.label("Configuration")
+NOT_PORT_STATUS = "NO DEVICE ON USB"
+YES_PORT_STATUS = "USB DEVICE DETECTED"
+port_status = ui.label(NOT_PORT_STATUS)
 NOT_CONNECTED_STATUS = "NOT CONNECTED TO ARDUINO"
 YES_CONNECTED_STATUS = "CONNECTED TO ARDUINO!"
 connected_status = ui.label(NOT_CONNECTED_STATUS)
@@ -87,13 +91,22 @@ jobs_queue = ui.table(columns=[
     {'name':'zone', 'label':'Zone', 'field':'zone', 'required':True, 'align':'left'},
     {'name':'remaining', 'label':'Time remaining (seconds)', 'field':'remaining', 'required':True}
 ], rows=[])
+
 def update():
     global spkr_ctl
     if spkr_ctl is not None:
+        global port_status
         global connected_status
         global verified_status
+        port_status.text = YES_PORT_STATUS if spkr_ctl.is_port_open() else NOT_PORT_STATUS
         connected_status.text = YES_CONNECTED_STATUS if spkr_ctl.is_connected() else NOT_CONNECTED_STATUS
         verified_status.text = YES_VERIFIED_STATUS if spkr_ctl.is_properly_connected() else NOT_VERIFIED_STATUS
+    else:
+        print("Missing spkr_ctl")
+        try:
+            spkr_ctl = SpkrCtl()
+        except Exception as e:
+            pass
 
     for select, zone in zip(ui_zone_selection, range(1,5)):
         if select.value:

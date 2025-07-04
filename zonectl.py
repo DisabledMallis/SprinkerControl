@@ -1,8 +1,6 @@
 from nicegui import ui
 
-from spkrctl import SpkrCtl, MESSAGE_BEGIN, MESSAGE_END, MESSAGE_OK, MESSAGE_ERROR
-
-spkr_ctl: SpkrCtl = None
+from spkrctl import SpkrCtl, MESSAGE_BEGIN, MESSAGE_END, MESSAGE_OK, MESSAGE_ERROR, spkr_ctl
 
 class Zone:
     def __init__(self, zone: int):
@@ -14,7 +12,11 @@ class Zone:
     def _ensure_connected(self) -> bool:
         global spkr_ctl
         if spkr_ctl is None:
-            spkr_ctl = SpkrCtl()
+            try:
+                spkr_ctl = SpkrCtl()
+            except Exception as e:
+                ui.notify(f"Error: {e}")
+                return False
         try:
             if not spkr_ctl.is_connected():
                 if spkr_ctl.connect():
@@ -30,15 +32,18 @@ class Zone:
         if not self._ensure_connected():
             return False
         if self.valid():
-            ui.notify(f"Started zone #{self.id()}")
+            spkr_ctl.send(MESSAGE_BEGIN)
+            spkr_ctl.send(self.id())
+            try:
+                if spkr_ctl.recv() == MESSAGE_OK:
+                    ui.notify(f"Started zone #{self.id()}")
+                    return True
+            except Exception as e:
+                ui.notify(f"Failed to start zone: {e}")
+            return False
         else:
             ui.notify(f"Failed to start zone #{self.id()}")
-        spkr_ctl.send(MESSAGE_BEGIN)
-        spkr_ctl.send(self.id())
-        try:
-            return spkr_ctl.recv() == MESSAGE_OK
-        except Exception as e:
-            ui.notify(f"Failed to start zone: {e}")
+            return False
     
     def stop(self) -> bool:
         global spkr_ctl

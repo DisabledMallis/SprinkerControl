@@ -7,10 +7,11 @@ MESSAGE_ERROR = b'X'
 MESSAGE_PING = b'P'
 MESSAGE_PONG = b'L'
 
-serial_port = "/dev/cu.usbmodemRFCX314G4TL2"
+serial_port = "/dev/tty.usbmodemRFCX314G4TL2"
 baude = 9600
 
 import serial
+import os
 class SpkrCtl:
     def __init__(self):
         self.serial = serial.Serial(serial_port, baudrate=baude)
@@ -28,8 +29,11 @@ class SpkrCtl:
         except:
             return False
 
+    def is_port_open(self) -> bool:
+        return os.path.exists(serial_port)
+
     def is_connected(self) -> bool:
-        return self.serial.is_open
+        return self.serial.is_open and self.is_port_open()
 
     def is_properly_connected(self) -> bool:
         return self.is_connected() and self.properly_connected
@@ -49,3 +53,5 @@ class SpkrCtl:
 
     def recv(self, size=1):
         return self.serial.read(size)
+
+spkr_ctl: SpkrCtl = None
