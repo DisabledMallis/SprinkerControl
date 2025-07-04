@@ -1,6 +1,6 @@
 from nicegui import ui
 
-from spkrctl import SpkrCtl, MESSAGE_BEGIN, MESSAGE_OK
+from spkrctl import SpkrCtl, MESSAGE_BEGIN, MESSAGE_END, MESSAGE_OK, MESSAGE_ERROR
 
 spkr_ctl: SpkrCtl = None
 
@@ -35,7 +35,10 @@ class Zone:
             ui.notify(f"Failed to start zone #{self.id()}")
         spkr_ctl.send(MESSAGE_BEGIN)
         spkr_ctl.send(self.id())
-        return spkr_ctl.recv() == MESSAGE_OK
+        try:
+            return spkr_ctl.recv() == MESSAGE_OK
+        except Exception as e:
+            ui.notify(f"Failed to start zone: {e}")
     
     def stop(self) -> bool:
         global spkr_ctl

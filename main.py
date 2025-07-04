@@ -1,7 +1,7 @@
 from nicegui import ui
 from nicegui.events import ValueChangeEventArguments
 
-from zonectl import ZoneCtl, Zone
+from zonectl import ZoneCtl, Zone, spkr_ctl
 
 # Zone controller
 zone_ctl = ZoneCtl()
@@ -23,6 +23,14 @@ def deselect_zone(zone: int):
         return
     
     zone_select[zone-1] = None
+
+ui.label("Configuration")
+NOT_CONNECTED_STATUS = "NOT CONNECTED TO ARDUINO"
+YES_CONNECTED_STATUS = "CONNECTED TO ARDUINO!"
+connected_status = ui.label(NOT_CONNECTED_STATUS)
+NOT_VERIFIED_STATUS = "MESSAGE PROTOCOL NOT ESTABLISHED"
+YES_VERIFIED_STATUS = "READY TO ROCK!"
+verified_status = ui.label(NOT_VERIFIED_STATUS)
 
 ui_zone_selection: list = []
 ui.label("Selected zones")
@@ -80,6 +88,13 @@ jobs_queue = ui.table(columns=[
     {'name':'remaining', 'label':'Time remaining (seconds)', 'field':'remaining', 'required':True}
 ], rows=[])
 def update():
+    global spkr_ctl
+    if spkr_ctl is not None:
+        global connected_status
+        global verified_status
+        connected_status.text = YES_CONNECTED_STATUS if spkr_ctl.is_connected() else NOT_CONNECTED_STATUS
+        verified_status.text = YES_VERIFIED_STATUS if spkr_ctl.is_properly_connected() else NOT_VERIFIED_STATUS
+
     for select, zone in zip(ui_zone_selection, range(1,5)):
         if select.value:
             select_zone(zone)
