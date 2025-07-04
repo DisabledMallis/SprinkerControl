@@ -1,75 +1,57 @@
 from nicegui import ui
 from nicegui.events import ValueChangeEventArguments
 
-# int for the total amount of seconds the program has been running for
-total_seconds: int = 0
+from zonectl import ZoneCtl, Zone
 
-class TimedTask:
-    def __init__(self, delay: int, callback):
-        self.executed = False
-        self.start_time = total_seconds
-        self.delay = delay
-        self.callback = callback
+# Zone controller
+zone_ctl = ZoneCtl()
+zone_select: list[Zone] = [None for i in range(1,5)]
+def select_zone(zone: int):
+    global zone_ctl
+    global zone_select
+    if not zone_ctl.has(zone):
+        ui.notify(f"Cannot select zone: Zone #{zone} doesn't exist!")
+        return
+
+    zone_select[zone-1] = zone_ctl.get(zone)
+
+def deselect_zone(zone: int):
+    global zone_ctl
+    global zone_select
+    if not zone_ctl.has(zone):
+        ui.notify(f"Cannot deselect zone: Zone #{zone} doesn't exist!")
+        return
     
-    def get_start_time(self) -> int:
-        return self.start_time
-    
-    def get_delay(self) -> int:
-        return self.delay
+    zone_select[zone-1] = None
 
-    def get_end_time(self) -> int:
-        return self.start_time + self.delay
-
-    def execute(self):
-        self.executed = True
-        return self.callback()
-    
-    def was_executed(self):
-        return self.executed
-
-tasks: list[TimedTask] = []
-
-def send_serial(message):
-    print(message)
-
-def start_zone(zone: int):
-    ui.notify(f"Starting zone #{zone}")
-    send_serial(f"B{zone}")
-    ui.notify(f"Zone #{zone} started!")
-
-def stop_zone(zone: int):
-    ui.notify(f"Stopping zone #{zone}")
-    send_serial(f"E{zone}")
-    ui.notify(f"Zone #{zone} stopped!")
-
-def schedule_stop_zone(zone: int, delay_value: float, delay_type: int):
-    tasks.append(TimedTask(delay_value * (60 if delay_type == 1 else 1), lambda: stop_zone(zone)))
-    ui.notify(f"Zone #{zone} will shut off in {delay_value} {"minutes" if delay_type == 1 else "seconds"}")
-
-def stop_all_zones():
-    global tasks
-    for zone in range(1, 5):
-        stop_zone(zone)
-    tasks.clear()
-
-zone_selection: list = []
+ui_zone_selection: list = []
 ui.label("Selected zones")
 with ui.row() as r:
     for zone in range(1, 5):
-        zone_selection.append(ui.checkbox(f"{zone}", value=True))
+        ui_zone_selection.append(ui.checkbox(f"{zone}", value=True))
 
 timer_duration: float = 0
 timer_mode: int = 0
 
 def start_selected_zones():
-    for selection, zone in zip(zone_selection, range(1, 5)):
-        if selection.value:
-            start_zone(zone)
-            schedule_stop_zone(zone, timer_duration, timer_mode)
-def stop_selected_zones():
-    for selection, zone in zip(zone_selection, range(1, 5)):
-        if selection.value:
-            stop_zone(zone)
+    if zone_select == None or all(v is None for v in zone_select):
+        ui.notify("You must select a zone first!")
+        return
+    for selected in zone_select:
+        if selected is None:
+            continue
+        
+        ui.notify(f"Adding zone #{selected.id()} to queue")
+        global zone_ctl
+        duration_seconds = timer_duration * (60 if timer_mode == 1 else 1)
+        zone_ctl.queue(selected, duration_seconds)
+        ui.notify(f"Zone #{selected.id()} queued for {timer_duration} {"minutes" if timer_mode == 1 else "seconds"}")
+
+def stop_all():
+    ui.notify(f"Stopping all zones...")
+    global zone_ctl
+    zone_ctl.clear()
+    ui.notify(f"All zones stopped!")
 
 def update_timer_mode(select):
     global timer_mode
@@ -90,18 +72,20 @@ with ui.row() as r:
 
 ui.label("Control")
 with ui.row() as r:
-    ui.button(f"Stop zone(s)", on_click=stop_all_zones)
+    ui.button(f"Stop all", on_click=stop_all)
+
+jobs_label = ui.label("Jobs")
 
 def update():
-    global total_seconds
-    global tasks
-    total_seconds += 1
-
-    for task in tasks:
-        if task.get_end_time() <= total_seconds:
-            task.execute()
+    for select, zone in zip(ui_zone_selection, range(1,5)):
+        if select.value:
+            select_zone(zone)
+        else:
+            deselect_zone(zone)
     
-    tasks = [task for task in tasks if not task.was_executed()]
+    global zone_ctl
+    zone_ctl.update()
+    jobs_label.text = f"{zone_ctl.count_tasks()} jobs in queue"
 
 ui.timer(1.0, update)
 ui.run()
