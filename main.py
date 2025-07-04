@@ -40,7 +40,7 @@ def start_selected_zones():
     for selected in zone_select:
         if selected is None:
             continue
-        
+
         ui.notify(f"Adding zone #{selected.id()} to queue")
         global zone_ctl
         duration_seconds = timer_duration * (60 if timer_mode == 1 else 1)
@@ -75,7 +75,10 @@ with ui.row() as r:
     ui.button(f"Stop all", on_click=stop_all)
 
 jobs_label = ui.label("Jobs")
-
+jobs_queue = ui.table(columns=[
+    {'name':'zone', 'label':'Zone', 'field':'zone', 'required':True, 'align':'left'},
+    {'name':'remaining', 'label':'Time remaining (seconds)', 'field':'remaining', 'required':True}
+], rows=[])
 def update():
     for select, zone in zip(ui_zone_selection, range(1,5)):
         if select.value:
@@ -86,6 +89,8 @@ def update():
     global zone_ctl
     zone_ctl.update()
     jobs_label.text = f"{zone_ctl.count_tasks()} jobs in queue"
+
+    jobs_queue.update_rows([ {'zone':task.get_zone().id(), 'remaining':task.get_time_remaining()} for task in zone_ctl.get_tasks()])
 
 ui.timer(1.0, update)
 ui.run()

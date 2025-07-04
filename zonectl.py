@@ -30,6 +30,9 @@ class ZoneTask:
         self.duration = duration
         self.remaining = duration
     
+    def get_zone(self) -> Zone:
+        return self.zone
+
     def get_time_remaining(self) -> int:
         return self.remaining
     
