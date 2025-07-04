@@ -1,5 +1,9 @@
 from nicegui import ui
 
+from spkrctl import SpkrCtl, MESSAGE_BEGIN, MESSAGE_OK
+
+spkr_ctl: SpkrCtl = None
+
 class Zone:
     def __init__(self, zone: int):
         self.zone = zone
@@ -7,19 +11,43 @@ class Zone:
     def valid(self) -> bool:
         return self.zone > 0 and self.zone < 5
     
+    def _ensure_connected(self) -> bool:
+        global spkr_ctl
+        if spkr_ctl is None:
+            spkr_ctl = SpkrCtl()
+        try:
+            if not spkr_ctl.is_connected():
+                if spkr_ctl.connect():
+                    return True
+                ui.notify("Error: Not connected to SPKR_CTL device! Please connect!")
+                return False
+            return True
+        except Exception as e:
+            ui.notify(f"Error: {e}")
+    
     def start(self) -> bool:
+        global spkr_ctl
+        if not self._ensure_connected():
+            return False
         if self.valid():
             ui.notify(f"Started zone #{self.id()}")
         else:
             ui.notify(f"Failed to start zone #{self.id()}")
-        return self.valid()
+        spkr_ctl.send(MESSAGE_BEGIN)
+        spkr_ctl.send(self.id())
+        return spkr_ctl.recv() == MESSAGE_OK
     
     def stop(self) -> bool:
+        global spkr_ctl
+        if not self._ensure_connected():
+            return False
         if self.valid():
             ui.notify(f"Stopped zone #{self.id()}")
         else:
             ui.notify(f"Failed to stop zone #{self.id()}")
-        return self.valid()
+        spkr_ctl.send(MESSAGE_END)
+        spkr_ctl.send(self.id())
+        return spkr_ctl.recv() == MESSAGE_OK
     
     def id(self) -> int:
         return self.zone
@@ -72,6 +100,9 @@ class ZoneCtl:
 
     def get_tasks(self):
         return self.zone_queue
+
+    def get_spkrctl(self) -> SpkrCtl:
+        return self.spkrctl
     
     def has_tasks(self):
         return self.count_tasks() > 0

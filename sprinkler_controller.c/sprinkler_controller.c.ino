@@ -6,6 +6,8 @@ constexpr auto BAUDE_RATE = 9600;
 #define MESSAGE_END 'E'
 #define MESSAGE_OK 'O'
 #define MESSAGE_ERROR 'X'
+#define MESSAGE_PING 'P'
+#define MESSAGE_PONG 'L'
 
 void setup() {
   Serial.begin(BAUDE_RATE);
@@ -91,6 +93,9 @@ void loop() {
           }
         }
         Serial.println();
+        break;
+      case MESSAGE_PING:
+        Serial.println(MESSAGE_PONG);
         break;
       default:
         Serial.print(MESSAGE_ERROR);
