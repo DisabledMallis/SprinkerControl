@@ -29,14 +29,17 @@ class TimedTask:
 
 tasks: list[TimedTask] = []
 
+def send_serial(message):
+    print(message)
+
 def start_zone(zone: int):
     ui.notify(f"Starting zone #{zone}")
-    print(f"B{zone}")
+    send_serial(f"B{zone}")
     ui.notify(f"Zone #{zone} started!")
 
 def stop_zone(zone: int):
     ui.notify(f"Stopping zone #{zone}")
-    print(f"E{zone}")
+    send_serial(f"E{zone}")
     ui.notify(f"Zone #{zone} stopped!")
 
 def schedule_stop_zone(zone: int, delay_value: float, delay_type: int):
