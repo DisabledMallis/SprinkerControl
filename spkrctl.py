@@ -62,7 +62,7 @@ class SpkrCtl:
 
     def recv(self) -> str:
         if self.recv_queue.empty():
-            return None
+            return ""
         return self.recv_queue.get()
         """ return self.serial.read_until().decode(encoding='ascii') """
 
