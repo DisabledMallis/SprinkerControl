@@ -57,7 +57,8 @@ def start_selected_zones():
         global zone_ctl
         duration_seconds = timer_duration * (60 if timer_mode == 1 else 1)
         zone_ctl.queue(selected, duration_seconds)
-        ui.notify(f"Zone #{selected.id()} queued for {timer_duration} {"minutes" if timer_mode == 1 else "seconds"}")
+        duration_text = "minutes" if timer_mode == 1 else "seconds";
+        ui.notify(f"Zone #{selected.id()} queued for {timer_duration} {duration_text}")
 
 def stop_all():
     ui.notify(f"Stopping all zones...")
