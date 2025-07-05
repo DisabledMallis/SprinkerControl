@@ -12,7 +12,7 @@ baude = 9600
 
 def find_serial_port() -> str:
     for port in range(0, 4):
-        if os.path.exists(serial_ports[port])
+        if os.path.exists(serial_ports[port]):
             return serial_ports[port]
     return None
 
