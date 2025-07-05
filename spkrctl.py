@@ -23,7 +23,7 @@ class SpkrCtl:
             self.serial = serial.Serial(serial_port, baudrate=baude)
         try:
             self.send(MESSAGE_PING)
-            while not self.recv() == MESSAGE_PONG:
+            while not self.recv().startswith(MESSAGE_PONG):
                 print(f"RECV FLUSH (connect/ping): {self.flush_recv()}")
                 self.send(MESSAGE_PING)
             print(f"RECV FLUSH (connect/ping): {self.flush_recv()}")

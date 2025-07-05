@@ -34,7 +34,7 @@ class Zone:
         if self.valid():
             try:
                 spkr_ctl.send(f"{MESSAGE_BEGIN}{self.id()}")
-                if spkr_ctl.recv() == MESSAGE_OK:
+                if spkr_ctl.recv().startswith(MESSAGE_OK):
                     ui.notify(f"Started zone #{self.id()}")
                     print(f"RECV COMMENT: {spkr_ctl.flush_recv()}")
                     return True
@@ -52,7 +52,7 @@ class Zone:
         if not self._ensure_connected():
             return False
         spkr_ctl.send(f"{MESSAGE_END}{self.id()}")
-        if spkr_ctl.recv() == MESSAGE_OK:
+        if spkr_ctl.recv().startswith(MESSAGE_OK):
             ui.notify(f"Stopped zone #{self.id()}")
             print(f"RECV COMMENT: {spkr_ctl.flush_recv()}")
         else:
