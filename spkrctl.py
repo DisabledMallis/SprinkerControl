@@ -1,11 +1,11 @@
 MESSAGE_INVALID = -1
-MESSAGE_BOOT = b'I'
-MESSAGE_BEGIN = b'B'
-MESSAGE_END = b'E'
-MESSAGE_OK = b'O'
-MESSAGE_ERROR = b'X'
-MESSAGE_PING = b'P'
-MESSAGE_PONG = b'L'
+MESSAGE_BOOT = 'I'
+MESSAGE_BEGIN = 'B'
+MESSAGE_END = 'E'
+MESSAGE_OK = 'O'
+MESSAGE_ERROR = 'X'
+MESSAGE_PING = 'P'
+MESSAGE_PONG = 'L'
 
 serial_port = "/dev/ttyUSB0"
 baude = 9600
@@ -24,9 +24,7 @@ class SpkrCtl:
         try:
             self.send(MESSAGE_PING)
             while not self.recv().startswith(MESSAGE_PONG):
-                print(f"RECV FLUSH (connect/ping): {self.flush_recv()}")
                 self.send(MESSAGE_PING)
-            print(f"RECV FLUSH (connect/ping): {self.flush_recv()}")
             self.properly_connected = True
             return True
         except:
@@ -57,12 +55,7 @@ class SpkrCtl:
     def available(self):
         return self.serial.in_waiting
 
-    def recv(self, size=1):
-        return self.serial.read(size)
-
-    def flush_recv(self):
-        if self.available() > 0:
-            return self.serial.read_until()
-        return ""
+    def recv(self):
+        return self.serial.read_until().decode(encoding='ascii')
 
 spkr_ctl: SpkrCtl = None
