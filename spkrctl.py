@@ -7,7 +7,7 @@ MESSAGE_ERROR = 'X'
 MESSAGE_PING = 'P'
 MESSAGE_PONG = 'L'
 
-serial_port = "/dev/cu.usbserial-140"
+serial_port = "/dev/ttyUSB0"
 baude = 9600
 
 import serial
