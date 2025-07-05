@@ -20,11 +20,12 @@ class SpkrCtl:
 
     def connect(self) -> bool:
         port_id = 0
-        while not self.serial.is_open:
-            self.serial = serial.Serial(serial_ports[port_id], baudrate=baude)
+        while not os.path.exists(serial_ports[port_id]):
             port_id += 1
             port_id %= 4
         print(f"Port {serial_ports[port_id]} is open!")
+        if not self.serial.is_open:
+            self.serial = serial.Serial(serial_ports[port_id], baudrate=baude)
         try:
             self.send(MESSAGE_PING)
             while not self.recv().startswith(MESSAGE_PONG):
