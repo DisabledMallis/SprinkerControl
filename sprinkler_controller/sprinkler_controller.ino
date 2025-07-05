@@ -14,7 +14,18 @@ constexpr auto BAUDE_RATE = 9600;
 void setup() {
   Serial.begin(BAUDE_RATE);
   Serial.print(MESSAGE_BOOT);
-  Serial.println("Booting...");
+  Serial.print("Booting...");
+  for (int z = 1; z < 5; z++) {
+    pinMode(ZONE_PIN_BASE + z, OUTPUT);
+  }
+  delay(1000);
+  for (int z = 1; z < 5; z++) {
+    digitalWrite(ZONE_PIN_BASE + z, LOW);
+    delay(1000);
+    digitalWrite(ZONE_PIN_BASE + z, HIGH);
+    delay(1000);
+  }
+  Serial.print("BOOT!");
 }
 
 struct Zone {
@@ -28,15 +39,14 @@ struct Zone {
     return mZone > 0 && mZone < 5;
   }
   bool begin() const {
-    for (int i = 1; i < 5; i++) {
-      Zone z{i};
-      z.end();
-    }
+    end();
     digitalWrite(ZONE_PIN_BASE + mZone, LOW);
     return true;
   }
   bool end() const {
-    digitalWrite(ZONE_PIN_BASE + mZone, HIGH);
+    for (int i = 1; i < 5; i++) {
+      digitalWrite(ZONE_PIN_BASE + i, HIGH);
+    }
     return true;
   }
 private:

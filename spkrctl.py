@@ -1,17 +1,18 @@
 MESSAGE_INVALID = -1
-MESSAGE_BOOT = b'I'
-MESSAGE_BEGIN = b'B'
-MESSAGE_END = b'E'
-MESSAGE_OK = b'O'
-MESSAGE_ERROR = b'X'
-MESSAGE_PING = b'P'
-MESSAGE_PONG = b'L'
+MESSAGE_BOOT = 'I'
+MESSAGE_BEGIN = 'B'
+MESSAGE_END = 'E'
+MESSAGE_OK = 'O'
+MESSAGE_ERROR = 'X'
+MESSAGE_PING = 'P'
+MESSAGE_PONG = 'L'
 
-serial_port = "/dev/tty.usbmodemRFCX314G4TL2"
+serial_port = "/dev/cu.usbserial-140"
 baude = 9600
 
 import serial
 import os
+import time
 class SpkrCtl:
     def __init__(self):
         self.serial = serial.Serial(serial_port, baudrate=baude)
@@ -21,6 +22,9 @@ class SpkrCtl:
         while not self.serial.is_open:
             self.serial = serial.Serial(serial_port, baudrate=baude)
         try:
+            while self.recv() != MESSAGE_BOOT:
+                print("Waiting for boot message...")
+                time.sleep(1.0)
             self.send(MESSAGE_PING)
             if not self.recv() == MESSAGE_PONG:
                 return False
@@ -41,13 +45,13 @@ class SpkrCtl:
     def disconnect(self):
         self.serial.close()
 
-    def send(self, msg) -> bool:
+    def send(self, msg: str) -> bool:
         try:
-            self.serial.write(msg)
+            self.serial.write(msg.encode(encoding='ascii'))
             print(f"SEND: {msg}")
             return True
-        except:
-            print("FAIL!")
+        except Exception as e:
+            print(f"FAIL! {e}")
             self.serial.close()
         return False
 
