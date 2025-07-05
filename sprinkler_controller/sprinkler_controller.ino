@@ -20,9 +20,9 @@ void setup() {
   }
   delay(1000);
   for (int z = 1; z < 5; z++) {
-    digitalWrite(ZONE_PIN_BASE + z, LOW);
-    delay(1000);
     digitalWrite(ZONE_PIN_BASE + z, HIGH);
+    delay(1000);
+    digitalWrite(ZONE_PIN_BASE + z, LOW);
     delay(1000);
   }
   Serial.print("BOOT!");
@@ -40,12 +40,12 @@ struct Zone {
   }
   bool begin() const {
     end();
-    digitalWrite(ZONE_PIN_BASE + mZone, LOW);
+    digitalWrite(ZONE_PIN_BASE + mZone, HIGH);
     return true;
   }
   bool end() const {
     for (int i = 1; i < 5; i++) {
-      digitalWrite(ZONE_PIN_BASE + i, HIGH);
+      digitalWrite(ZONE_PIN_BASE + i, LOW);
     }
     return true;
   }

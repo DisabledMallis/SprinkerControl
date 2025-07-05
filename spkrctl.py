@@ -7,7 +7,7 @@ MESSAGE_ERROR = 'X'
 MESSAGE_PING = 'P'
 MESSAGE_PONG = 'L'
 
-serial_port = "/dev/ttyUSB0"
+serial_ports = ["/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2", "/dev/ttyUSB3"]
 baude = 9600
 
 import serial
@@ -15,12 +15,15 @@ import os
 import time
 class SpkrCtl:
     def __init__(self):
-        self.serial = serial.Serial(serial_port, baudrate=baude)
+        self.serial = serial.Serial(serial_ports[0], baudrate=baude)
         self.properly_connected = False
 
     def connect(self) -> bool:
+        port_id = 0
         while not self.serial.is_open:
-            self.serial = serial.Serial(serial_port, baudrate=baude)
+            self.serial = serial.Serial(serial_ports[port_id], baudrate=baude)
+            port_id += 1
+            port_id %= 4
         try:
             self.send(MESSAGE_PING)
             while not self.recv().startswith(MESSAGE_PONG):
