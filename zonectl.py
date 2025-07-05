@@ -11,7 +11,7 @@ class Zone:
     
     def _ensure_connected(self) -> bool:
         global spkr_ctl
-        if spkr_ctl is None:
+        while spkr_ctl is None:
             try:
                 spkr_ctl = SpkrCtl()
             except Exception as e:

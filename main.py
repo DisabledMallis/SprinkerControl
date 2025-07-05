@@ -121,5 +121,13 @@ def update():
 
     jobs_queue.update_rows([ {'zone':task.get_zone().id(), 'remaining':task.get_time_remaining()} for task in zone_ctl.get_tasks()])
 
+import threading
+def update_serial():
+    global spkr_ctl
+    spkr_ctl.update()
+
+serial_thread = threading.Thread(target=update_serial)
+serial_thread.start()
 ui.timer(1.0, update)
 ui.run()
+serial_thread.join()

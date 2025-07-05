@@ -19,22 +19,18 @@ def find_serial_port() -> str:
 import serial
 import os
 import time
+import queue
+
 class SpkrCtl:
     def __init__(self):
         self.serial = serial.Serial(find_serial_port(), baudrate=baude, write_timeout=5)
         self.properly_connected = False
+        self.send_queue = queue.Queue()
+        self.recv_queue = queue.Queue()
 
     def connect(self) -> bool:
         if not self.serial.is_open:
             self.serial = serial.Serial(find_serial_port(), baudrate=baude)
-        try:
-            self.send(MESSAGE_PING)
-            while not self.recv().startswith(MESSAGE_PONG):
-                self.send(MESSAGE_PING)
-            self.properly_connected = True
-            return True
-        except:
-            return False
 
     def is_port_open(self) -> bool:
         return find_serial_port() != None
@@ -49,19 +45,50 @@ class SpkrCtl:
         self.serial.close()
 
     def send(self, msg: str) -> bool:
-        try:
+        self.send_queue.put(msg)
+        return True
+        
+        """ try:
             self.serial.write(msg.encode(encoding='ascii'))
             print(f"SEND: {msg}")
             return True
         except Exception as e:
             print(f"FAIL! {e}")
             self.serial.close()
-        return False
+        return False """
 
     def available(self):
         return self.serial.in_waiting
 
-    def recv(self):
-        return self.serial.read_until().decode(encoding='ascii')
+    def recv(self) -> str:
+        if self.recv_queue.empty():
+            return None
+        return self.recv_queue.get()
+        """ return self.serial.read_until().decode(encoding='ascii') """
+
+    def update(self):
+        if not self.is_port_open():
+            self.properly_connected = False
+            return
+        if not self.is_connected():
+            self.properly_connected = False
+            return self.connect()
+        if not self.is_properly_connected():
+            self.serial.write(MESSAGE_PING.encode(encoding='ascii'))
+            received = self.serial.read_until().decode(encoding='ascii')
+            if received.startswith(MESSAGE_PONG):
+                self.properly_connected = True
+                return
+
+        if self.serial.in_waiting > 0:
+            received = self.serial.read_until()
+            if received.startswith(MESSAGE_BOOT):
+                self.properly_connected = False
+                print("DEVICE BOOTING!")
+                return
+            self.recv_queue.put(received)
+
+        if not self.send_queue.empty and self.is_properly_connected():
+            self.serial.write(self.send_queue.get().encode(encoding='ascii'))
 
 spkr_ctl: SpkrCtl = None
