@@ -11,14 +11,10 @@ serial_ports = ["/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2", "/dev/ttyUSB3"]
 baude = 9600
 
 def find_serial_port() -> str:
-    port_id = 0
-    while not os.path.exists(serial_ports[port_id]):
-        port_id += 1
-        port_id %= 4
-        time.sleep(1.0)
-        print("Looking for serial port...")
-    print(f"Found open port: {serial_ports[port_id]}")
-    return serial_ports[port_id]
+    for port in range(0, 4):
+        if os.path.exists(serial_ports[port])
+            return serial_ports[port]
+    return None
 
 import serial
 import os
@@ -41,7 +37,7 @@ class SpkrCtl:
             return False
 
     def is_port_open(self) -> bool:
-        return os.path.exists(serial_port)
+        return find_serial_port() != None
 
     def is_connected(self) -> bool:
         return self.serial.is_open and self.is_port_open()
