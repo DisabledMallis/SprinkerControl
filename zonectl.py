@@ -32,11 +32,13 @@ class Zone:
         if not self._ensure_connected():
             return False
         if self.valid():
-            spkr_ctl.send(f"{MESSAGE_BEGIN}{self.id()}")
             try:
+                spkr_ctl.send(f"{MESSAGE_BEGIN}{self.id()}")
                 if spkr_ctl.recv() == MESSAGE_OK:
                     ui.notify(f"Started zone #{self.id()}")
                     return True
+                else:
+                    ui.notify(f"Failed to start zone: Did not receive OK message!")
             except Exception as e:
                 ui.notify(f"Failed to start zone: {e}")
             return False
