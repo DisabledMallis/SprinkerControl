@@ -21,7 +21,7 @@ import os
 import time
 class SpkrCtl:
     def __init__(self):
-        self.serial = serial.Serial(find_serial_port(), baudrate=baude)
+        self.serial = serial.Serial(find_serial_port(), baudrate=baude, write_timeout=5)
         self.properly_connected = False
 
     def connect(self) -> bool:
