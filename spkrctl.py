@@ -10,22 +10,27 @@ MESSAGE_PONG = 'L'
 serial_ports = ["/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2", "/dev/ttyUSB3"]
 baude = 9600
 
+def find_serial_port() -> str:
+    port_id = 0
+    while not os.path.exists(serial_ports[port_id]):
+        port_id += 1
+        port_id %= 4
+        time.sleep(1.0)
+        print("Looking for serial port...")
+    print(f"Found open port: {serial_ports[port_id]}")
+    return serial_ports[port_id]
+
 import serial
 import os
 import time
 class SpkrCtl:
     def __init__(self):
-        self.serial = serial.Serial(serial_ports[0], baudrate=baude)
+        self.serial = serial.Serial(find_serial_port(), baudrate=baude)
         self.properly_connected = False
 
     def connect(self) -> bool:
-        port_id = 0
-        while not os.path.exists(serial_ports[port_id]):
-            port_id += 1
-            port_id %= 4
-        print(f"Port {serial_ports[port_id]} is open!")
         if not self.serial.is_open:
-            self.serial = serial.Serial(serial_ports[port_id], baudrate=baude)
+            self.serial = serial.Serial(find_serial_port(), baudrate=baude)
         try:
             self.send(MESSAGE_PING)
             while not self.recv().startswith(MESSAGE_PONG):
