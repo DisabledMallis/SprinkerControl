@@ -9,6 +9,8 @@ constexpr auto BAUDE_RATE = 9600;
 #define MESSAGE_PING 'P'
 #define MESSAGE_PONG 'L'
 
+#define ZONE_PIN_BASE 4
+
 void setup() {
   Serial.begin(BAUDE_RATE);
   Serial.print(MESSAGE_BOOT);
@@ -26,10 +28,16 @@ struct Zone {
     return mZone > 0 && mZone < 5;
   }
   bool begin() const {
-    return valid();
+    for (int i = 1; i < 5; i++) {
+      Zone z{i};
+      z.end();
+    }
+    digitalWrite(ZONE_PIN_BASE + mZone, LOW);
+    return true;
   }
   bool end() const {
-    return valid();
+    digitalWrite(ZONE_PIN_BASE + mZone, HIGH);
+    return true;
   }
 private:
   int mZone = 0;
