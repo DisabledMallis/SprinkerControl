@@ -24,6 +24,7 @@ class SpkrCtl:
             self.serial = serial.Serial(serial_ports[port_id], baudrate=baude)
             port_id += 1
             port_id %= 4
+        print(f"Port {serial_ports[port_id]} is open!")
         try:
             self.send(MESSAGE_PING)
             while not self.recv().startswith(MESSAGE_PONG):
