@@ -36,7 +36,7 @@ class Zone:
                 spkr_ctl.send(f"{MESSAGE_BEGIN}{self.id()}")
                 if spkr_ctl.recv() == MESSAGE_OK:
                     ui.notify(f"Started zone #{self.id()}")
-                    spkr_ctl.flush_recv()
+                    print(f"RECV COMMENT: {spkr_ctl.flush_recv()}")
                     return True
                 else:
                     ui.notify(f"Failed to start zone: Did not receive OK message!")
@@ -54,9 +54,9 @@ class Zone:
         spkr_ctl.send(f"{MESSAGE_END}{self.id()}")
         if spkr_ctl.recv() == MESSAGE_OK:
             ui.notify(f"Stopped zone #{self.id()}")
-            spkr_ctl.flush_recv()
+            print(f"RECV COMMENT: {spkr_ctl.flush_recv()}")
         else:
-            ui.notify(f"Failed to stop zone #{self.id()}")
+            ui.notify(f"Failed to stop zone #{self.id()}: Did not receive OK message!")
     
     def id(self) -> int:
         return self.zone

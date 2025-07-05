@@ -22,12 +22,11 @@ class SpkrCtl:
         while not self.serial.is_open:
             self.serial = serial.Serial(serial_port, baudrate=baude)
         try:
-            while self.recv() != MESSAGE_BOOT:
-                print("Waiting for boot message...")
-                time.sleep(1.0)
             self.send(MESSAGE_PING)
-            if not self.recv() == MESSAGE_PONG:
-                return False
+            while not self.recv() == MESSAGE_PONG:
+                print(f"RECV FLUSH (connect/ping): {self.flush_recv()}")
+                self.send(MESSAGE_PING)
+            print(f"RECV FLUSH (connect/ping): {self.flush_recv()}")
             self.properly_connected = True
             return True
         except:
@@ -55,10 +54,15 @@ class SpkrCtl:
             self.serial.close()
         return False
 
+    def available(self):
+        return self.serial.in_waiting
+
     def recv(self, size=1):
         return self.serial.read(size)
 
     def flush_recv(self):
-        return self.serial.read_until()
+        if self.available() > 0:
+            return self.serial.read_until()
+        return ""
 
 spkr_ctl: SpkrCtl = None
