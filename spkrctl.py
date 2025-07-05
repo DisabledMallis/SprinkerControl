@@ -58,4 +58,7 @@ class SpkrCtl:
     def recv(self, size=1):
         return self.serial.read(size)
 
+    def flush_recv(self):
+        return self.serial.read_until()
+
 spkr_ctl: SpkrCtl = None
