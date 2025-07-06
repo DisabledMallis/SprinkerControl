@@ -20,6 +20,7 @@ import serial
 class Connection:
     def __init__(self):
         self.conn = serial.Serial()
+        self.conn.write_timeout = 5
         self.initialized = False
     
     # Sanitize state (ig)
