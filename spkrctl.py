@@ -1,94 +1,189 @@
-MESSAGE_INVALID = -1
-MESSAGE_BOOT = 'I'
-MESSAGE_BEGIN = 'B'
+MESSAGE_PING = 'P'
+MESSAGE_PONG = 'L'
+MESSAGE_BOOT = 'B'
+MESSAGE_ZONE = 'Z'
 MESSAGE_END = 'E'
 MESSAGE_OK = 'O'
 MESSAGE_ERROR = 'X'
-MESSAGE_PING = 'P'
-MESSAGE_PONG = 'L'
 
-serial_ports = ["/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2", "/dev/ttyUSB3"]
+serial_ports = ["/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2", "/dev/ttyUSB3", "/dev/cu.usbserial-110"]
 baude = 9600
 
+import os
 def find_serial_port() -> str:
-    for port in range(0, 4):
+    for port in range(0, len(serial_ports)):
         if os.path.exists(serial_ports[port]):
             return serial_ports[port]
     return None
 
 import serial
-import os
-import time
-import queue
+class Connection:
+    def __init__(self):
+        self.conn = serial.Serial()
+        self.initialized = False
+    
+    # Sanitize state (ig)
+    def _sanitize_state(self):
+        if not self.connected():
+            self.initialized = False
+
+    # Connect to the USB device
+    def connect(self, timeout=5) -> bool:
+        try:
+            delay = 0.5
+            attempts = timeout * (1.0 / delay)
+            while not self.connected() and attempts > 0:
+                self.port = find_serial_port()
+                print(f"(ConnCtl) [*] Connecting to device on: {self.port} ({attempts} attempts remaining)")
+                self.conn = serial.Serial(port=self.port, baudrate=baude)
+                time.sleep(delay)
+                attempts -= 1
+            return self.connected()
+        except Exception as e:
+            print(f"(ConnCtl) [!] Connection failed: {e}")
+        return False
+
+    def port_valid(self) -> bool:
+        return os.path.exists(self.port)
+
+    def connected(self) -> bool:
+        return self.conn.is_open and self.port_valid()
+
+    # Initialize communication protocol
+    def initialize(self, timeout=5) -> bool:
+        delay = 0.5
+        attempts = timeout * (1.0 / delay)
+        while self.connected() and not self.initialized:
+            self.println(MESSAGE_PING)
+            print(f"(ConnCtl) [>] {MESSAGE_PING}")
+            while self.available() > 0:
+                response = self.read()
+                print(f"(ConnCtl) [<] {response}")
+                if response.startswith(MESSAGE_PONG):
+                    self.initialized = True
+            attempts -= 1
+            time.sleep(delay)
+        return self.is_initialized()
+
+    def is_initialized(self) -> bool:
+        self._sanitize_state()
+        return self.initialized and self.connected()
+
+    def available(self):
+        if not self.connected():
+            return 0
+        return self.conn.in_waiting
+
+    def println(self, msg) -> bool:
+        if not self.connected():
+            return False
+        self.conn.write(f"{msg}\n".encode(encoding='ascii'))
+        self.conn.flush()
+
+    def read(self) -> str:
+        if not self.connected():
+            return ""
+        return self.conn.read_until().decode(encoding='ascii')
 
 class SpkrCtl:
     def __init__(self):
-        self.serial = serial.Serial(find_serial_port(), baudrate=baude, write_timeout=5)
-        self.properly_connected = False
-        self.send_queue = queue.Queue()
-        self.recv_queue = queue.Queue()
+        self.conn = Connection()
+    
+    def initialize(self, timeout=5) -> bool:
+        print("(SpkrCtl) [*] Connecting...")
+        if not self.conn.connect(timeout=timeout):
+            print("(SpkrCtl) [!] Connection failed! Is the device plugged in?")
+            return False
 
-    def connect(self) -> bool:
-        if not self.serial.is_open:
-            self.serial = serial.Serial(find_serial_port(), baudrate=baude)
+        print("(SpkrCtl) [*] Initializing...")
+        if not self.conn.initialize(timeout=timeout):
+            print("(SpkrCtl) [!] Failed to initialize! Is this the correct device?")
+            return False
 
-    def is_port_open(self) -> bool:
-        return find_serial_port() != None
+        print("(SpkrCtl) [*] Protocol initialized!")
+        return self.initialized()
 
-    def is_connected(self) -> bool:
-        return self.serial.is_open and self.is_port_open()
+    def initialized(self) -> bool:
+        return self.conn.is_initialized()
+    
+    def zone(self, zone: int, timeout=5) -> bool:
+        if not self.initialized():
+            print(f"(SpkrCtl) [!] Cannot start zone {zone}, SpkrCtl is NOT initialized!")
+            return False
 
-    def is_properly_connected(self) -> bool:
-        return self.is_connected() and self.properly_connected
+        print(f"(SpkrCtl) [*] Starting zone #{zone}...")
+        delay = 0.25
+        attempts = timeout * (1.0 / delay)
+        while not self.conn.available() > 0 and attempts > 0:
+            self.conn.println(f"{MESSAGE_ZONE}{zone}")
+            print(f"(SpkrCtl) [.] Zone command sent")
+            time.sleep(delay)
+            attempts -= 1
 
-    def disconnect(self):
-        self.serial.close()
+        attempts = timeout * (1.0 / delay)
+        total_attempts = attempts
+        while attempts > 0:
+            msg = self.conn.read()
+            if msg.startswith(MESSAGE_OK):
+                print(f"(SpkrCtl) [✅] Zone {zone} started!")
+                return True
+            elif msg.startswith(MESSAGE_ERROR):
+                print(f"(SpkrCtl) [!] {msg}")
+                return False
+            attempts -= 1
+            time.sleep(delay)
+        print(f"(SpkrCtl) [!] Failed to start zone #{zone} after {total_attempts} attempts!")
+        return False
+    
+    def end(self, timeout=5) -> bool:
+        if not self.initialized():
+            print(f"(SpkrCtl) [!] Cannot stop zones, SpkrCtl is NOT initialized!")
+            return False
 
-    def send(self, msg: str) -> bool:
-        self.send_queue.put(msg)
-        return True
-        
-        """ try:
-            self.serial.write(msg.encode(encoding='ascii'))
-            print(f"SEND: {msg}")
-            return True
-        except Exception as e:
-            print(f"FAIL! {e}")
-            self.serial.close()
-        return False """
+        delay = 0.25
+        attempts = timeout * (1.0 / delay)
+        while not self.conn.available() > 0 and attempts > 0:
+            self.conn.println(MESSAGE_END)
+            time.sleep(delay)
+            attempts -= 1
 
-    def available(self):
-        return self.serial.in_waiting
+        if attempts <= 0:
+            print(f"(SpkrCtl) [!] Cannot stop zones, no response received!")
+            return False
 
-    def recv(self) -> str:
-        if self.recv_queue.empty():
-            return ""
-        return self.recv_queue.get()
-        """ return self.serial.read_until().decode(encoding='ascii') """
+        attempts = timeout * (1.0 / delay)
+        while attempts > 0:
+            msg = self.conn.read()
+            if msg.startswith(MESSAGE_OK):
+                print(f"(SpkrCtl) [✅] Zones ended!")
+                return True
+            elif msg.startswith(MESSAGE_ERROR):
+                print(f"(SpkrCtl) [!] {msg}")
+                return False
+            attempts -= 1
+            time.sleep(delay)
+        return False
 
-    def update(self):
-        if not self.is_port_open():
-            self.properly_connected = False
-            return
-        if not self.is_connected():
-            self.properly_connected = False
-            return self.connect()
-        if not self.is_properly_connected():
-            self.serial.write(MESSAGE_PING.encode(encoding='ascii'))
-            received = self.serial.read_until().decode(encoding='ascii')
-            if received.startswith(MESSAGE_PONG):
-                self.properly_connected = True
-                return
 
-        if self.serial.in_waiting > 0:
-            received = self.serial.read_until()
-            if received.startswith(MESSAGE_BOOT):
-                self.properly_connected = False
-                print("DEVICE BOOTING!")
-                return
-            self.recv_queue.put(received)
+spkr_ctl = SpkrCtl()
 
-        if not self.send_queue.empty and self.is_properly_connected():
-            self.serial.write(self.send_queue.get().encode(encoding='ascii'))
+import time
+if __name__ == "__main__":
+    print("[*] Starting SpkrCtl terminal...")
+    if not spkr_ctl.initialize():
+        print("[!] Failed to initialize spkr_ctl!")
+    if spkr_ctl.initialized():
+        print("[✅] Initialized spkr_ctl!")
+    
+    cmd = None
+    while spkr_ctl.initialized():
+        cmd = input(">")
+        if cmd[0] == MESSAGE_ZONE and len(cmd) > 1 and cmd[1].isdigit():
+            spkr_ctl.zone(int(cmd[1]))
+        elif cmd[0] == MESSAGE_END:
+            spkr_ctl.end()
+        else:
+            print("[!] Unknown command! Use 'Z#' to start a zone, or 'E' to end all zones!")
+    
+    print("[✅] Connection closed, exiting!")
 
-spkr_ctl: SpkrCtl = None

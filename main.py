@@ -26,15 +26,9 @@ def deselect_zone(zone: int):
     zone_select[zone-1] = None
 
 ui.label("Configuration")
-NOT_PORT_STATUS = "NO DEVICE ON USB"
-YES_PORT_STATUS = "USB DEVICE DETECTED"
-port_status = ui.label(NOT_PORT_STATUS)
-NOT_CONNECTED_STATUS = "NOT CONNECTED TO PORT"
-YES_CONNECTED_STATUS = "CONNECTED TO PORT!"
+NOT_CONNECTED_STATUS = "NOT CONNECTED TO CONTROLLER"
+YES_CONNECTED_STATUS = "READY TO ROCK!"
 connected_status = ui.label(NOT_CONNECTED_STATUS)
-NOT_VERIFIED_STATUS = "MESSAGE PROTOCOL NOT ESTABLISHED"
-YES_VERIFIED_STATUS = "READY TO ROCK!"
-verified_status = ui.label(NOT_VERIFIED_STATUS)
 
 ui_zone_selection: list = []
 ui.label("Selected zones")
@@ -95,13 +89,14 @@ jobs_queue = ui.table(columns=[
 
 def update():
     global spkr_ctl
+    global connected_status
     if spkr_ctl is not None:
-        global port_status
-        global connected_status
-        global verified_status
-        port_status.text = YES_PORT_STATUS if spkr_ctl.is_port_open() else NOT_PORT_STATUS
-        connected_status.text = YES_CONNECTED_STATUS if spkr_ctl.is_connected() else NOT_CONNECTED_STATUS
-        verified_status.text = YES_VERIFIED_STATUS if spkr_ctl.is_properly_connected() else NOT_VERIFIED_STATUS
+        if not spkr_ctl.initialized() and not spkr_ctl.initialize():
+            status = NOT_CONNECTED_STATUS
+        else:
+            status = YES_CONNECTED_STATUS
+        connected_status.set_text(status)
+        print(status)
     else:
         print("Missing spkr_ctl")
         try:
@@ -121,19 +116,5 @@ def update():
 
     jobs_queue.update_rows([ {'zone':task.get_zone().id(), 'remaining':task.get_time_remaining()} for task in zone_ctl.get_tasks()])
 
-running = True
-import threading
-import time
-def update_serial():
-    global spkr_ctl
-    global running
-    while running and spkr_ctl is not None:
-        spkr_ctl.update()
-        time.sleep(0.25)
-
-serial_thread = threading.Thread(target=update_serial)
-serial_thread.start()
 ui.timer(1.0, update)
 ui.run()
-running = False
-serial_thread.join()
