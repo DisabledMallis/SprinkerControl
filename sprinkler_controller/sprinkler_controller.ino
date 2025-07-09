@@ -1,7 +1,5 @@
 constexpr auto BAUDE_RATE = 9600;
 
-#define MESSAGE_PING 'P'
-#define MESSAGE_BOOT 'B'
 #define MESSAGE_ZONE 'Z'
 #define MESSAGE_END 'E'
 #define MESSAGE_OK 'O'
@@ -11,18 +9,12 @@ constexpr auto BAUDE_RATE = 9600;
 
 void setup() {
   Serial.begin(BAUDE_RATE);
-  Serial.print(MESSAGE_BOOT);
   Serial.print("Booting...");
+  pinMode(ZONE_PIN_BASE, OUTPUT);
   for (int z = 1; z < 5; z++) {
     pinMode(ZONE_PIN_BASE + z, OUTPUT);
   }
   delay(1000);
-  for (int z = 1; z < 5; z++) {
-    digitalWrite(ZONE_PIN_BASE + z, HIGH);
-    delay(1000);
-    digitalWrite(ZONE_PIN_BASE + z, LOW);
-    delay(1000);
-  }
   Serial.println("BOOT!");
 }
 
@@ -51,7 +43,7 @@ private:
   int mZone = 0;
 };
 
-size_t lastPing = 0;
+size_t lastCommand = 0;
 size_t currentTime = 0;
 void loop() {
   while(Serial.available() > 0) {
@@ -63,6 +55,7 @@ void loop() {
     if (msg.endsWith("\n")) {
       msg = msg.substring(0, msg.length() - 1);
     }
+    lastCommand = currentTime;
     switch(msg[0]) {
       case MESSAGE_ZONE:
         if (msg.length() <= 1) {
@@ -93,21 +86,18 @@ void loop() {
           Zone zone{z};
           zone.end();
         }
-        Serial.println(MESSAGE_OK);
-        break;
-      case MESSAGE_PING:
-        lastPing = currentTime;
-        Serial.println(MESSAGE_PING);
+        Serial.print(MESSAGE_OK);
+        Serial.println("All zones ended");
         break;
       default:
         Serial.print(MESSAGE_ERROR);
-        Serial.println("Unknown message received.");
+        Serial.println("Unknown message received");
         break;
     }
   }
   currentTime = millis();
   // If we've gone 5 seconds without a ping
-  if ((currentTime - lastPing) > 5000) {
+  if ((currentTime - lastCommand) > 5000) {
     // Assume something's gone wrong and shut down the zones
     for (int z = 1; z < 5; z++) {
       Zone zone{z};
@@ -115,7 +105,7 @@ void loop() {
     }
     
     // Reset this just so we dont spam idk
-    lastPing = currentTime;
+    lastCommand = currentTime;
   }
   delay(1);
 }

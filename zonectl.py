@@ -1,7 +1,6 @@
 from nicegui import ui
 
-from spkrctl import SpkrCtl, spkr_ctl
-
+active_zone = -1
 class Zone:
     def __init__(self, zone: int):
         self.zone = zone
@@ -9,51 +8,13 @@ class Zone:
     def valid(self) -> bool:
         return self.zone > 0 and self.zone < 5
     
-    def _ensure_connected(self) -> bool:
-        global spkr_ctl
-        while spkr_ctl is None:
-            try:
-                spkr_ctl = SpkrCtl()
-            except Exception as e:
-                ui.notify(f"Error: {e}")
-                return False
-        try:
-            if not spkr_ctl.initialized():
-                if spkr_ctl.initialize():
-                    return True
-                ui.notify("Error: Failed to initialize SpkrCtl!")
-                return False
-            return True
-        except Exception as e:
-            ui.notify(f"Error: {e}")
-        return False
-    
     def start(self) -> bool:
-        global spkr_ctl
-        if not self._ensure_connected():
-            return False
-        if self.valid():
-            try:
-                if spkr_ctl.zone(self.id()):
-                    ui.notify(f"Started zone #{self.id()}")
-                    return True
-                else:
-                    ui.notify(f"Failed to start zone: Did not receive OK message!")
-            except Exception as e:
-                ui.notify(f"Failed to start zone: {e}")
-            return False
-        else:
-            ui.notify(f"Failed to start zone #{self.id()}")
-            return False
+        global active_zone
+        active_zone = self.zone
     
     def stop(self) -> bool:
-        global spkr_ctl
-        if not self._ensure_connected():
-            return False
-        if spkr_ctl.end():
-            ui.notify(f"Stopped zone #{self.id()}")
-        else:
-            ui.notify(f"Failed to stop zone #{self.id()}: Did not receive OK message!")
+        global active_zone
+        active_zone = -1
     
     def id(self) -> int:
         return self.zone
@@ -79,7 +40,7 @@ class ZoneTask:
             if self.duration == self.remaining:
                 self.zone.start()
 
-            self.remaining -= 1
+            self.remaining -= 0.25
         
         # If its expired, stop the zone
         if self.expired():
@@ -106,9 +67,6 @@ class ZoneCtl:
 
     def get_tasks(self):
         return self.zone_queue
-
-    def get_spkrctl(self) -> SpkrCtl:
-        return self.spkrctl
     
     def has_tasks(self):
         return self.count_tasks() > 0

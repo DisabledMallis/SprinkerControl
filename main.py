@@ -1,7 +1,7 @@
 from nicegui import ui
 from nicegui.events import ValueChangeEventArguments
 
-from spkrctl import SpkrCtl, spkr_ctl, UnexpectedBootError
+from spkrctl import spkr_connected, running_spkr, spkr_thread
 from zonectl import ZoneCtl, Zone
 
 # Zone controller
@@ -88,27 +88,14 @@ jobs_queue = ui.table(columns=[
 ], rows=[])
 
 def update():
-    global spkr_ctl
+    global spkr_connected
     global connected_status
-    if spkr_ctl is not None:
-        if not spkr_ctl.initialized() and not spkr_ctl.initialize():
-            status = NOT_CONNECTED_STATUS
-        else:
-            status = YES_CONNECTED_STATUS
-        connected_status.set_text(status)
-        print(status)
-        try:
-            spkr_ctl.ping()
-        except UnexpectedBootError as ube:
-            print("[!] Unexpected reboot")
-            ui.notify("Unexpected reboot, you may need to re-queue zones.")
-            spkr_ctl = SpkrCtl()
+    global zone_ctl
+
+    if spkr_connected:
+        connected_status.set_text(YES_CONNECTED_STATUS)
     else:
-        print("Missing spkr_ctl")
-        try:
-            spkr_ctl = SpkrCtl()
-        except Exception as e:
-            pass
+        connected_status.set_text(NOT_CONNECTED_STATUS)
 
     for select, zone in zip(ui_zone_selection, range(1,5)):
         if select.value:
@@ -116,17 +103,11 @@ def update():
         else:
             deselect_zone(zone)
     
-    try:
-        global zone_ctl
-        zone_ctl.update()
-        jobs_label.text = f"{zone_ctl.count_tasks()} jobs in queue"
+    jobs_label.text = f"{zone_ctl.count_tasks()} jobs in queue"
+    jobs_queue.update_rows([ {'zone':task.get_zone().id(), 'remaining':task.get_time_remaining()} for task in zone_ctl.get_tasks()])
+    zone_ctl.update()
 
-        jobs_queue.update_rows([ {'zone':task.get_zone().id(), 'remaining':task.get_time_remaining()} for task in zone_ctl.get_tasks()])
-    except UnexpectedBootError as ube:
-        print("[!] Unexpected reboot")
-        ui.notify("Unexpected reboot, you may need to re-queue zones.")
-        spkr_ctl = SpkrCtl()
-
-
-ui.timer(1.0, update)
+spkr_thread.start()
+ui.timer(0.25, update)
 ui.run()
+running_spkr = False
