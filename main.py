@@ -85,10 +85,12 @@ def update():
         connected_status.set_text(NOT_CONNECTED_STATUS)
 
     now = datetime.now()
-    time_label.set_text(f"{now}")
+    days = ['M', 'T', 'W', 'R', 'F', 'S', 'U']
+    today = days[now.weekday()]
+    time_label.set_text(f"{today} @ {now}")
 
     for prog in prog_ctl.programs:
-        if prog.start_time == f"{now.hour:02d}:{now.minute}" and prog_started_delay <= 0:
+        if today in prog.days and prog.start_time == f"{now.hour:02d}:{now.minute}" and prog_started_delay <= 0:
             # Queue the program's tasks
             for task in prog.tasks:
                 zone_ctl.queue(zone_ctl.get(task['zone']), task['duration'])
