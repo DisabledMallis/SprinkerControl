@@ -54,7 +54,7 @@ class Connection:
     def initialize(self, timeout=5) -> bool:
         delay = 0.5
         attempts = timeout * (1.0 / delay)
-        while self.connected() and not self.initialized:
+        while self.connected() and not self.initialized and attempts > 0:
             self.println(MESSAGE_PING)
             print(f"(ConnCtl) [>] {MESSAGE_PING}")
             while self.available() > 0:
