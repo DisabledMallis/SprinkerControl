@@ -3,83 +3,60 @@ from nicegui.events import ValueChangeEventArguments
 
 import spkrctl
 from zonectl import ZoneCtl, Zone
+from prog import Program, ProgramCtl
+import json
 
 # Zone controller
 zone_ctl = ZoneCtl()
-zone_select: list[Zone] = [None for i in range(1,5)]
-def select_zone(zone: int):
-    global zone_ctl
-    global zone_select
-    if not zone_ctl.has(zone):
-        ui.notify(f"Cannot select zone: Zone #{zone} doesn't exist!")
-        return
 
-    zone_select[zone-1] = zone_ctl.get(zone)
-
-def deselect_zone(zone: int):
-    global zone_ctl
-    global zone_select
-    if not zone_ctl.has(zone):
-        ui.notify(f"Cannot deselect zone: Zone #{zone} doesn't exist!")
-        return
-    
-    zone_select[zone-1] = None
+# Program controller
+prog_ctl = ProgramCtl()
 
 ui.label("Configuration")
 NOT_CONNECTED_STATUS = "NOT CONNECTED TO CONTROLLER"
 YES_CONNECTED_STATUS = "READY TO ROCK!"
 connected_status = ui.label(NOT_CONNECTED_STATUS)
 
-ui_zone_selection: list = []
-ui.label("Selected zones")
-with ui.row() as r:
-    for zone in range(1, 5):
-        ui_zone_selection.append(ui.checkbox(f"{zone}", value=True))
-
-timer_duration: float = 0
-timer_mode: int = 0
-
-def start_selected_zones():
-    if zone_select == None or all(v is None for v in zone_select):
-        ui.notify("You must select a zone first!")
-        return
-    for selected in zone_select:
-        if selected is None:
-            continue
-
-        ui.notify(f"Adding zone #{selected.id()} to queue")
-        global zone_ctl
-        duration_seconds = timer_duration * (60 if timer_mode == 1 else 1)
-        zone_ctl.queue(selected, duration_seconds)
-        duration_text = "minutes" if timer_mode == 1 else "seconds";
-        ui.notify(f"Zone #{selected.id()} queued for {timer_duration} {duration_text}")
-
 def stop_all():
-    ui.notify(f"Stopping all zones...")
-    global zone_ctl
     zone_ctl.clear()
-    ui.notify(f"All zones stopped!")
-
-def update_timer_mode(select):
-    global timer_mode
-    if select.value == "Minutes":
-        timer_mode = 1
-    elif select.value == "Seconds":
-        timer_mode = 0
-
-def update_timer_duration(num):
-    global timer_duration
-    timer_duration = num.value
-
-ui.label("Timer")
-with ui.row() as r:
-    ui.number(label="Duration", on_change=update_timer_duration)
-    ui.select(["Seconds", "Minutes"], on_change=update_timer_mode)
-    ui.button("Start", on_click=start_selected_zones)
+    ui.notify("All zones stopped")
 
 ui.label("Control")
 with ui.row() as r:
     ui.button(f"Stop all", on_click=stop_all)
+
+def run_program(program):
+    ui.notify(f"Running '{program.name}'")
+ui.label("Programs:")
+with ui.list().props('bordered separator'):
+    ui.item_label('Programs').props('header').classes('text-bold')
+    ui.separator()
+    for program in prog_ctl.programs:
+        with ui.item(on_click=lambda: run_program(program)):
+            with ui.item_section().props('avatar'):
+                ui.icon('settings')
+            with ui.item_section():
+                ui.item_label(program.name)
+                ui.item_label(program.start_time).props('caption')
+            with ui.item_section().props('avatar'):
+                ui.icon('start')
+
+
+with ui.dialog() as prog_dialog, ui.card():
+    prog = Program()
+    editor = ui.codemirror(value=prog.to_json(), language='JSON')
+
+    with ui.row():
+        ui.button("Save", on_click=lambda: prog_dialog.submit(prog))
+        ui.button("Cancel", on_click=lambda: prog_dialog.submit(None))
+
+async def show_prog_dialog():
+    prog = await prog_dialog
+    if prog is not None:
+        ui.notify(f"Saved '{prog.name}'")
+        prog_ctl.save(prog)
+    else:
+        ui.notify("Aborted")
 
 jobs_label = ui.label("Jobs")
 jobs_queue = ui.table(columns=[
@@ -96,12 +73,6 @@ def update():
     else:
         connected_status.set_text(NOT_CONNECTED_STATUS)
 
-    for select, zone in zip(ui_zone_selection, range(1,5)):
-        if select.value:
-            select_zone(zone)
-        else:
-            deselect_zone(zone)
-    
     jobs_label.text = f"{zone_ctl.count_tasks()} jobs in queue"
     jobs_queue.update_rows([ {'zone':task.get_zone().id(), 'remaining':task.get_time_remaining()} for task in zone_ctl.get_tasks()])
     zone_ctl.update()

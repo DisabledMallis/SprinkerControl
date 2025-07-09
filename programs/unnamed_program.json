@@ -1,0 +1,14 @@
+{
+    "days": [
+        "M",
+        "T",
+        "W",
+        "R",
+        "F",
+        "S",
+        "U"
+    ],
+    "name": "Unnamed Program",
+    "start_time": "06:00",
+    "tasks": []
+}
