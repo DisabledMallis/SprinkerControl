@@ -24,13 +24,18 @@ import time
 import zonectl
 
 last_error: str = None
-running_spkr = True
+running_spkr = False
 spkr_connected = False
 def spkr_runner():
     global running_spkr
     global last_error
     global spkr_connected
 
+    if not running_spkr:
+        running_spkr = True
+    else:
+        return
+        
     conn = connect_serial()
     while running_spkr:
         # Delay 1s
