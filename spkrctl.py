@@ -76,6 +76,7 @@ def spkr_runner():
 spkr_thread = threading.Thread(target=spkr_runner)
 
 if __name__ == "__main__":
+    spkr_thread.start()
     while running_spkr:
         try:
             cmd = input(">")
