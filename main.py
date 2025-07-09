@@ -1,7 +1,7 @@
 from nicegui import ui
 from nicegui.events import ValueChangeEventArguments
 
-from spkrctl import SpkrCtl, spkr_ctl
+from spkrctl import SpkrCtl, spkr_ctl, UnexpectedBootError
 from zonectl import ZoneCtl, Zone
 
 # Zone controller
@@ -97,7 +97,11 @@ def update():
             status = YES_CONNECTED_STATUS
         connected_status.set_text(status)
         print(status)
-        spkr_ctl.ping();
+        try:
+            spkr_ctl.ping()
+        except UnexpectedBootError as ube:
+            print("[!] Unexpected reboot")
+            ui.notify("Unexpected reboot, you may need to re-queue zones.")
     else:
         print("Missing spkr_ctl")
         try:
@@ -111,11 +115,16 @@ def update():
         else:
             deselect_zone(zone)
     
-    global zone_ctl
-    zone_ctl.update()
-    jobs_label.text = f"{zone_ctl.count_tasks()} jobs in queue"
+    try:
+        global zone_ctl
+        zone_ctl.update()
+        jobs_label.text = f"{zone_ctl.count_tasks()} jobs in queue"
 
-    jobs_queue.update_rows([ {'zone':task.get_zone().id(), 'remaining':task.get_time_remaining()} for task in zone_ctl.get_tasks()])
+        jobs_queue.update_rows([ {'zone':task.get_zone().id(), 'remaining':task.get_time_remaining()} for task in zone_ctl.get_tasks()])
+    except UnexpectedBootError as ube:
+        print("[!] Unexpected reboot")
+        ui.notify("Unexpected reboot, you may need to re-queue zones.")
+
 
 ui.timer(1.0, update)
 ui.run()

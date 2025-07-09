@@ -90,6 +90,9 @@ class Connection:
             print(f"(SpkrCtl) [!] {ude}")
             return MESSAGE_ERROR
 
+class UnexpectedBootError(Exception):
+    pass
+
 class SpkrCtl:
     def __init__(self):
         self.conn = Connection()
@@ -129,6 +132,8 @@ class SpkrCtl:
         total_attempts = attempts
         while attempts > 0:
             msg = self.conn.read()
+            if msg.startswith(MESSAGE_BOOT):
+                raise UnexpectedBootError()
             if msg.startswith(MESSAGE_OK):
                 print(f"(SpkrCtl) [✅] Zone {zone} started!")
                 return True
@@ -161,6 +166,8 @@ class SpkrCtl:
         attempts = timeout * (1.0 / delay)
         while attempts > 0:
             msg = self.conn.read()
+            if msg.startswith(MESSAGE_BOOT):
+                raise UnexpectedBootError()
             if msg.startswith(MESSAGE_OK):
                 print(f"(SpkrCtl) [✅] Zones ended!")
                 return True
@@ -190,6 +197,8 @@ class SpkrCtl:
         attempts = timeout * (1.0 / delay)
         while attempts > 0 and self.conn.available() > 0:
             msg = self.conn.read()
+            if msg.startswith(MESSAGE_BOOT):
+                raise UnexpectedBootError()
             success = False
             while msg.startswith(MESSAGE_PING) and self.conn.available() > 0:
                 print(f"(SpkrCtl) [.] Ping!")
