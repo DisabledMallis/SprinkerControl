@@ -87,7 +87,7 @@ class Connection:
         try:
             return self.conn.read_until().decode(encoding='ascii')
         except UnicodeDecodeError as ude:
-            print(f"(SpkrCtl) [!] {e}")
+            print(f"(SpkrCtl) [!] {ude}")
             return MESSAGE_ERROR
 
 class SpkrCtl:
