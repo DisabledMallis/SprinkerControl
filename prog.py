@@ -60,9 +60,12 @@ class ProgramCtl:
         for prog_json in os.listdir('programs'):
             path = f"programs/{prog_json}"
             if os.path.isfile(path):
-                print(f"Loading program '{prog_json}'")
-                with open(path) as f:
-                    self.add(Program.from_json(f.read()))
+                try:
+                    print(f"Loading program '{prog_json}'")
+                    with open(path) as f:
+                        self.add(Program.from_json(f.read()))
+                except Exception as e:
+                    print(f"Error whilst loading program: {e}")
 
     @classmethod
     def save(cls, prog: Program) -> bool:
