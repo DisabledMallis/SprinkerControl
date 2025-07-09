@@ -5,7 +5,7 @@ MESSAGE_END = 'E'
 MESSAGE_OK = 'O'
 MESSAGE_ERROR = 'X'
 
-serial_ports = ["/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2", "/dev/ttyUSB3", "/dev/cu.usbserial-110", "/dev/cu.usbserial-120"]
+serial_ports = ["/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2", "/dev/ttyUSB3", "/dev/cu.usbserial-110", "/dev/cu.usbserial-120", "/dev/cu.usbserial-130", "/dev/cu.usbserial-140"]
 baude = 9600
 
 import os
