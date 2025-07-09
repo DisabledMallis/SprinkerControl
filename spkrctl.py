@@ -81,8 +81,26 @@ def spkr_runner():
 
 spkr_thread = threading.Thread(target=spkr_runner)
 
+def start_spkr():
+    global spkr_thread
+    global running_spkr
+
+    if running_spkr:
+        print("(SpkrCtl) [*] Halting thread...")
+        running_spkr = False
+        spkr_thread.join()
+
+    if not running_spkr:
+        print("(SpkrCtl) [*] Starting thread...")
+        spkr_thread.start()
+    
+    while not running_spkr:
+        time.sleep(10)
+    
+    print("(SpkrCtl) [✅] Started!")
+
 if __name__ == "__main__":
-    spkr_thread.start()
+    start_spkr()
     while running_spkr:
         try:
             cmd = input(">")

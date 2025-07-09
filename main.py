@@ -106,9 +106,7 @@ def update():
     jobs_queue.update_rows([ {'zone':task.get_zone().id(), 'remaining':task.get_time_remaining()} for task in zone_ctl.get_tasks()])
     zone_ctl.update()
 
-if not spkrctl.running_spkr:
-    spkrctl.spkr_thread.start()
-
+spkrctl.start_spkr()
 ui.timer(0.25, update)
 ui.run()
 spkrctl.running_spkr = False
