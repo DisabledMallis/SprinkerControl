@@ -102,6 +102,7 @@ def update():
         except UnexpectedBootError as ube:
             print("[!] Unexpected reboot")
             ui.notify("Unexpected reboot, you may need to re-queue zones.")
+            spkr_ctl = SpkrCtl()
     else:
         print("Missing spkr_ctl")
         try:
@@ -124,6 +125,7 @@ def update():
     except UnexpectedBootError as ube:
         print("[!] Unexpected reboot")
         ui.notify("Unexpected reboot, you may need to re-queue zones.")
+        spkr_ctl = SpkrCtl()
 
 
 ui.timer(1.0, update)
