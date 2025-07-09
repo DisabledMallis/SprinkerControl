@@ -9,6 +9,7 @@ class Program:
         self.days = days
         self.start_time = start_time
         self.tasks = tasks
+        self.run_now = False
     
     def filename(self) -> str:
         return f"{self.name.lower().replace(' ', '_')}.json"
@@ -33,6 +34,24 @@ class Program:
 import os
 class ProgramCtl:
     def __init__(self):
+        self.reload()
+
+    def add(self, prog: Program) -> bool:
+        self.programs.append(prog)
+
+    def remove(self, prog: Program):
+        if prog is None:
+            return
+        os.remove(f"programs/{prog.filename()}")
+        self.programs.remove(prog)
+    
+    def get(self, name: str) -> Program:
+        for prog in self.programs:
+            if prog.name == name:
+                return prog
+        return None
+
+    def reload(self):
         self.programs = []
 
         if not os.path.exists('programs'):
@@ -45,10 +64,8 @@ class ProgramCtl:
                 with open(path) as f:
                     self.add(Program.from_json(f.read()))
 
-    def add(self, prog: Program) -> bool:
-        self.programs.append(prog)
-
-    def save(self, prog: Program) -> bool:
+    @classmethod
+    def save(cls, prog: Program) -> bool:
         if not os.path.exists('programs'):
             os.mkdir('programs')
         
@@ -56,3 +73,8 @@ class ProgramCtl:
         print(f"Saving {file}")
         with open(f"programs/{file}", 'w') as w:
             w.write(prog.to_json())
+
+if __name__ == "__main__":
+    prog_ctl = ProgramCtl()
+    for prog in prog_ctl.programs:
+        print(prog.to_json())

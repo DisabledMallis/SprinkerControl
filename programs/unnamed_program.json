@@ -9,6 +9,16 @@
         "U"
     ],
     "name": "Unnamed Program",
+    "run_now": false,
     "start_time": "06:00",
-    "tasks": []
+    "tasks": [
+        {
+            "duration": 15,
+            "zone": 1
+        },
+        {
+            "duration": 10,
+            "zone": 2
+        }
+    ]
 }

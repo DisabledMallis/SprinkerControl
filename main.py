@@ -25,38 +25,45 @@ ui.label("Control")
 with ui.row() as r:
     ui.button(f"Stop all", on_click=stop_all)
 
-def run_program(program):
-    ui.notify(f"Running '{program.name}'")
+async def edit_program(program):
+    if program is None:
+        return
+    result = await modify_prog_ui(program)
+    prog_ctl.reload()
+    if result == "DEL":
+        prog_ctl.remove(program)
+        ui.notify("Deleted!")
+        return
+    ui.notify("Saved")
+
+# Program management section
 ui.label("Programs:")
-with ui.list().props('bordered separator'):
-    ui.item_label('Programs').props('header').classes('text-bold')
-    ui.separator()
-    for program in prog_ctl.programs:
-        with ui.item(on_click=lambda: run_program(program)):
-            with ui.item_section().props('avatar'):
-                ui.icon('settings')
-            with ui.item_section():
-                ui.item_label(program.name)
-                ui.item_label(program.start_time).props('caption')
-            with ui.item_section().props('avatar'):
-                ui.icon('start')
-
-
-with ui.dialog() as prog_dialog, ui.card():
-    prog = Program()
-    editor = ui.codemirror(value=prog.to_json(), language='JSON')
-
-    with ui.row():
-        ui.button("Save", on_click=lambda: prog_dialog.submit(prog))
-        ui.button("Cancel", on_click=lambda: prog_dialog.submit(None))
-
-async def show_prog_dialog():
-    prog = await prog_dialog
-    if prog is not None:
-        ui.notify(f"Saved '{prog.name}'")
-        prog_ctl.save(prog)
-    else:
-        ui.notify("Aborted")
+from prog_ui import modify_prog_ui
+async def update_fucking_selection():
+    global prog_ctl
+    prog_ctl.reload()
+    prog_select.set_options([prog.name for prog in prog_ctl.programs])
+async def progs_update_bullshit():
+    await modify_prog_ui(None)
+    await update_fucking_selection()
+async def fucking_edit_selected():
+    return await edit_program(prog_ctl.get(prog_select.value))
+async def fucking_delete_selected():
+    prog_ctl.remove(prog_ctl.get(prog_select.value))
+    await update_fucking_selection()
+async def start_test_run():
+    prog = prog_ctl.get(prog_select.value)
+    for task in prog.tasks:
+        zone_ctl.queue(zone_ctl.get(task['zone']), task['duration'])
+            
+prog_select = None
+with ui.row():
+    prog_select = ui.select([prog.name for prog in prog_ctl.programs])
+    ui.button("🧪 Test Run", on_click=start_test_run)
+with ui.row():
+    ui.button("➕ Add", on_click=progs_update_bullshit)
+    ui.button("📝 Edit", on_click=fucking_edit_selected)
+    ui.button("🗑️ Delete", on_click=fucking_delete_selected)
 
 jobs_label = ui.label("Jobs")
 jobs_queue = ui.table(columns=[
