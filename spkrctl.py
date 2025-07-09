@@ -29,6 +29,7 @@ spkr_connected = False
 def spkr_runner():
     global running_spkr
     global last_error
+    global spkr_connected
 
     conn = connect_serial()
     while running_spkr:
