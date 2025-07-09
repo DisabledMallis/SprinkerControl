@@ -1,7 +1,6 @@
 constexpr auto BAUDE_RATE = 9600;
 
 #define MESSAGE_PING 'P'
-#define MESSAGE_PONG 'L'
 #define MESSAGE_BOOT 'B'
 #define MESSAGE_ZONE 'Z'
 #define MESSAGE_END 'E'
@@ -52,6 +51,8 @@ private:
   int mZone = 0;
 };
 
+size_t lastPing = 0;
+size_t currentTime = 0;
 void loop() {
   while(Serial.available() > 0) {
     auto msg = Serial.readStringUntil('\n');
@@ -95,7 +96,8 @@ void loop() {
         Serial.println(MESSAGE_OK);
         break;
       case MESSAGE_PING:
-        Serial.println(MESSAGE_PONG);
+        lastPing = currentTime;
+        Serial.println(MESSAGE_PING);
         break;
       default:
         Serial.print(MESSAGE_ERROR);
@@ -103,4 +105,17 @@ void loop() {
         break;
     }
   }
+  currentTime = millis();
+  // If we've gone 5 seconds without a ping
+  if ((currentTime - lastPing) > 5000) {
+    // Assume something's gone wrong and shut down the zones
+    for (int z = 1; z < 5; z++) {
+      Zone zone{z};
+      zone.end();
+    }
+    
+    // Reset this just so we dont spam idk
+    lastPing = currentTime;
+  }
+  delay(1);
 }

@@ -1,12 +1,11 @@
 MESSAGE_PING = 'P'
-MESSAGE_PONG = 'L'
 MESSAGE_BOOT = 'B'
 MESSAGE_ZONE = 'Z'
 MESSAGE_END = 'E'
 MESSAGE_OK = 'O'
 MESSAGE_ERROR = 'X'
 
-serial_ports = ["/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2", "/dev/ttyUSB3", "/dev/cu.usbserial-110"]
+serial_ports = ["/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2", "/dev/ttyUSB3", "/dev/cu.usbserial-110", "/dev/cu.usbserial-120"]
 baude = 9600
 
 import os
@@ -21,6 +20,7 @@ class Connection:
     def __init__(self):
         self.conn = serial.Serial()
         self.conn.write_timeout = 5
+        self.conn.read_timeout = 5
         self.initialized = False
     
     # Sanitize state (ig)
@@ -60,7 +60,7 @@ class Connection:
             while self.available() > 0:
                 response = self.read()
                 print(f"(ConnCtl) [<] {response}")
-                if response.startswith(MESSAGE_PONG):
+                if response.startswith(MESSAGE_PING):
                     self.initialized = True
             attempts -= 1
             time.sleep(delay)
@@ -84,7 +84,11 @@ class Connection:
     def read(self) -> str:
         if not self.connected():
             return ""
-        return self.conn.read_until().decode(encoding='ascii')
+        try:
+            return self.conn.read_until().decode(encoding='ascii')
+        except UnicodeDecodeError as ude:
+            print(f"(SpkrCtl) [!] {e}")
+            return MESSAGE_ERROR
 
 class SpkrCtl:
     def __init__(self):
@@ -106,7 +110,7 @@ class SpkrCtl:
 
     def initialized(self) -> bool:
         return self.conn.is_initialized()
-    
+
     def zone(self, zone: int, timeout=5) -> bool:
         if not self.initialized():
             print(f"(SpkrCtl) [!] Cannot start zone {zone}, SpkrCtl is NOT initialized!")
@@ -131,6 +135,8 @@ class SpkrCtl:
             elif msg.startswith(MESSAGE_ERROR):
                 print(f"(SpkrCtl) [!] {msg}")
                 return False
+            else:
+                print(f"(SpkrCtl) [?] Unknown response: {msg}")
             attempts -= 1
             time.sleep(delay)
         print(f"(SpkrCtl) [!] Failed to start zone #{zone} after {total_attempts} attempts!")
@@ -165,6 +171,34 @@ class SpkrCtl:
             time.sleep(delay)
         return False
 
+    def ping(self, timeout=5) -> bool:
+        if not self.initialized():
+            print(f"(SpkrCtl) [!] Cannot ping, SpkrCtl is NOT initialized!")
+            return False
+
+        delay = 0.25
+        attempts = timeout * (1.0 / delay)
+        while not self.conn.available() > 0 and attempts > 0:
+            self.conn.println(MESSAGE_PING)
+            time.sleep(delay)
+            attempts -= 1
+        
+        if attempts <= 0:
+            print(f"(SpkrCtl) [!] No ping response received!")
+            return False
+
+        attempts = timeout * (1.0 / delay)
+        while attempts > 0 and self.conn.available() > 0:
+            msg = self.conn.read()
+            success = False
+            while msg.startswith(MESSAGE_PING) and self.conn.available() > 0:
+                print(f"(SpkrCtl) [.] Ping!")
+                msg = self.conn.read()
+            print(f"(SpkrCtl) [.] NO Ping!")
+            attempts -= 1
+            time.sleep(delay)
+        return True
+
 
 spkr_ctl = SpkrCtl()
 
@@ -179,12 +213,15 @@ if __name__ == "__main__":
     cmd = None
     while spkr_ctl.initialized():
         cmd = input(">")
+        spkr_ctl.ping()
         if cmd[0] == MESSAGE_ZONE and len(cmd) > 1 and cmd[1].isdigit():
             spkr_ctl.zone(int(cmd[1]))
         elif cmd[0] == MESSAGE_END:
             spkr_ctl.end()
+        elif cmd[0] == MESSAGE_PING:
+            spkr_ctl.ping()
         else:
-            print("[!] Unknown command! Use 'Z#' to start a zone, or 'E' to end all zones!")
+            print("[!] Unknown command! P = Ping, Z# = start a zone by #, E = end all zones")
     
     print("[✅] Connection closed, exiting!")
 

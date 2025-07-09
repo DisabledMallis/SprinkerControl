@@ -97,6 +97,7 @@ def update():
             status = YES_CONNECTED_STATUS
         connected_status.set_text(status)
         print(status)
+        spkr_ctl.ping();
     else:
         print("Missing spkr_ctl")
         try:
