@@ -39,8 +39,10 @@ def spkr_runner():
             spkr_connected = False
             conn = connect_serial()
             continue
+        elif not spkr_connected:
+            spkr_connected = True
+            print("(SpkrCtl) [✅] Connected!")
 
-        spkr_connected = True
         try:
             if zonectl.active_zone < 1 or zonectl.active_zone > 4:
                 conn.write(MESSAGE_END.encode(encoding='ascii'))
