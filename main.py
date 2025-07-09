@@ -5,6 +5,7 @@ import spkrctl
 from zonectl import ZoneCtl, Zone
 from prog import Program, ProgramCtl
 import json
+from datetime import datetime
 
 # Zone controller
 zone_ctl = ZoneCtl()
@@ -16,6 +17,7 @@ ui.label("Configuration")
 NOT_CONNECTED_STATUS = "NOT CONNECTED TO CONTROLLER"
 YES_CONNECTED_STATUS = "READY TO ROCK!"
 connected_status = ui.label(NOT_CONNECTED_STATUS)
+time_label = ui.label(f"{datetime.now()}")
 
 def stop_all():
     zone_ctl.clear()
@@ -71,14 +73,27 @@ jobs_queue = ui.table(columns=[
     {'name':'remaining', 'label':'Time remaining (seconds)', 'field':'remaining', 'required':True}
 ], rows=[])
 
+prog_started_delay = 0
 def update():
     global connected_status
     global zone_ctl
+    global prog_started_delay
 
     if spkrctl.spkr_connected:
         connected_status.set_text(YES_CONNECTED_STATUS)
     else:
         connected_status.set_text(NOT_CONNECTED_STATUS)
+
+    now = datetime.now()
+    time_label.set_text(f"{now}")
+
+    for prog in prog_ctl.programs:
+        if prog.start_time == f"{now.hour:02d}:{now.minute}" and prog_started_delay <= 0:
+            # Queue the program's tasks
+            for task in prog.tasks:
+                zone_ctl.queue(zone_ctl.get(task['zone']), task['duration'])
+            prog_started_delay = 60 * 4
+    prog_started_delay -= 1
 
     jobs_label.text = f"{zone_ctl.count_tasks()} jobs in queue"
     jobs_queue.update_rows([ {'zone':task.get_zone().id(), 'remaining':task.get_time_remaining()} for task in zone_ctl.get_tasks()])
