@@ -26,19 +26,16 @@ import zonectl
 last_error: str = None
 running_spkr = False
 spkr_connected = False
-import random
 def spkr_runner():
     global running_spkr
     global last_error
     global spkr_connected
 
-    # This is a dirty hack but idgaf
-    time.sleep(0.5 + random.random())
     if not running_spkr:
         running_spkr = True
     else:
         return
-
+        
     conn = connect_serial()
     while running_spkr:
         # Delay 1s

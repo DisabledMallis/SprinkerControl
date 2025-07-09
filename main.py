@@ -1,7 +1,7 @@
 from nicegui import ui
 from nicegui.events import ValueChangeEventArguments
 
-from spkrctl import spkr_connected, running_spkr, spkr_thread
+import spkrctl
 from zonectl import ZoneCtl, Zone
 
 # Zone controller
@@ -88,11 +88,10 @@ jobs_queue = ui.table(columns=[
 ], rows=[])
 
 def update():
-    global spkr_connected
     global connected_status
     global zone_ctl
 
-    if spkr_connected:
+    if spkrctl.spkr_connected:
         connected_status.set_text(YES_CONNECTED_STATUS)
     else:
         connected_status.set_text(NOT_CONNECTED_STATUS)
@@ -107,7 +106,9 @@ def update():
     jobs_queue.update_rows([ {'zone':task.get_zone().id(), 'remaining':task.get_time_remaining()} for task in zone_ctl.get_tasks()])
     zone_ctl.update()
 
-spkr_thread.start()
+if not spkrctl.running_spkr:
+    spkrctl.spkr_thread.start()
+
 ui.timer(0.25, update)
 ui.run()
-running_spkr = False
+spkrctl.running_spkr = False
