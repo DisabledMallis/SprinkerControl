@@ -108,5 +108,5 @@ def update():
 
 spkrctl.start_spkr()
 ui.timer(0.25, update)
-ui.run()
+ui.run(reload=False)
 spkrctl.running_spkr = False
