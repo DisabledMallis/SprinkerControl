@@ -86,13 +86,13 @@ if __name__ == "__main__":
             continue
         if cmd.startswith(MESSAGE_ZONE) and len(cmd) > 1:
             try:
-                active_zone = int(cmd[1])
-                print(f"Starting zone #{active_zone}")
+                zonectl.active_zone = int(cmd[1])
+                print(f"Starting zone #{zonectl.active_zone}")
             except:
                 print(f"Invalid zone '{cmd[1]}'")
-                active_zone = -1
+                zonectl.active_zone = -1
         elif cmd.startswith(MESSAGE_END):
             print("Ending zones")
-            active_zone = -1
+            zonectl.active_zone = -1
         else:
             print("Unknown command")
