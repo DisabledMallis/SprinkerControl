@@ -3,7 +3,7 @@ import RPi.GPIO as GPIO
 
 GPIO.setmode(GPIO.BCM)
 active_zone = -1
-pinList = [4, 22, 6, 26]
+pinList = [26, 6, 22, 4]
 class Zone:
     def __init__(self, zone: int, pin: int):
         self.zone = zone
