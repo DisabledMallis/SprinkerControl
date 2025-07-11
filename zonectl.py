@@ -1,9 +1,13 @@
 from nicegui import ui
+import RPi.GPIO as GPIO
 
 active_zone = -1
+pinList = [4, 22, 6, 26]
 class Zone:
-    def __init__(self, zone: int):
+    def __init__(self, zone: int, pin: int):
         self.zone = zone
+        self.pin = pin
+        GPIO.setup(self.pin, GPIO.OUT)
     
     def valid(self) -> bool:
         return self.zone > 0 and self.zone < 5
@@ -11,10 +15,12 @@ class Zone:
     def start(self) -> bool:
         global active_zone
         active_zone = self.zone
+        GPIO.output(self.pin, GPIO.HIGH)
     
     def stop(self) -> bool:
         global active_zone
         active_zone = -1
+        GPIO.output(self.pin, GPIO.LOW)
     
     def id(self) -> int:
         return self.zone
@@ -48,7 +54,7 @@ class ZoneTask:
     
 class ZoneCtl:
     def __init__(self):
-        self.zones = [Zone(zone) for zone in range(1, 5)]
+        self.zones = [Zone(zone, pinList[zone-1]) for zone in range(1, 5)]
         self.zone_queue = []
     
     def has(self, zone: int) -> bool:
