@@ -1,7 +1,6 @@
 from nicegui import ui
 from nicegui.events import ValueChangeEventArguments
 
-import spkrctl
 from zonectl import ZoneCtl, Zone
 from prog import Program, ProgramCtl
 import json
@@ -79,11 +78,6 @@ def update():
     global zone_ctl
     global prog_started_delay
 
-    if spkrctl.spkr_connected:
-        connected_status.set_text(YES_CONNECTED_STATUS)
-    else:
-        connected_status.set_text(NOT_CONNECTED_STATUS)
-
     now = datetime.now()
     days = ['M', 'T', 'W', 'R', 'F', 'S', 'U']
     today = days[now.weekday()]
@@ -101,7 +95,5 @@ def update():
     jobs_queue.update_rows([ {'zone':task.get_zone().id(), 'remaining':task.get_time_remaining()} for task in zone_ctl.get_tasks()])
     zone_ctl.update()
 
-spkrctl.start_spkr()
 ui.timer(0.25, update)
 ui.run()
-spkrctl.running_spkr = False
