@@ -1,6 +1,7 @@
 from nicegui import ui
 import RPi.GPIO as GPIO
 
+GPIO.setmode(GPIO.BCM)
 active_zone = -1
 pinList = [4, 22, 6, 26]
 class Zone:
